@@ -1,0 +1,15 @@
+kokoro-onnx
+soundfile
+numpy
+nltk
+librosa
+transformers
+torch
+scipy
+langdetect
+deep-translator
+fastapi
+uvicorn
+python-multipart
+python-socketio
+pydantic-settings

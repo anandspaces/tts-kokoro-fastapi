@@ -103,7 +103,13 @@ def setup_socket_handlers():
             elif word_count >= HARD_LIMIT: should_send = True
                 
             if should_send:
-                chunks.append(current_chunk.strip())
+                final_chunk = current_chunk.strip()
+                # Fix: If chunk is just punctuation, append to previous if possible
+                if final_chunk and not any(c.isalnum() for c in final_chunk) and chunks:
+                    chunks[-1] += final_chunk
+                else:
+                    chunks.append(final_chunk)
+                    
                 current_chunk = ""
                 word_count = 0
                 

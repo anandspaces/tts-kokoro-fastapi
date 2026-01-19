@@ -1,3 +1,4 @@
+import threading
 import torch
 import numpy as np
 import scipy.io.wavfile as wav
@@ -33,35 +34,37 @@ class MMSEngine:
         self.loaded_models = OrderedDict() # Cache: {lang_code: (model, tokenizer)}
         self.device = settings.MODEL_DEVICE
         self.max_models = settings.MAX_LOADED_MODELS
+        self.lock = threading.Lock()
 
     def load_lang(self, lang_code):
-        # 1. Check if already loaded
-        if lang_code in self.loaded_models:
-            # Move to end (most recently used)
-            self.loaded_models.move_to_end(lang_code)
-            return
+        with self.lock:
+            # 1. Check if already loaded
+            if lang_code in self.loaded_models:
+                # Move to end (most recently used)
+                self.loaded_models.move_to_end(lang_code)
+                return
 
-        print(f"Loading model for language: {lang_code}...")
-        model_id = f"facebook/mms-tts-{lang_code}"
-        
-        try:
-            tokenizer = AutoTokenizer.from_pretrained(model_id)
-            model = VitsModel.from_pretrained(model_id)
-            model.to(self.device)
+            print(f"Loading model for language: {lang_code}...")
+            model_id = f"facebook/mms-tts-{lang_code}"
             
-            # 2. Check if cache is full
-            if len(self.loaded_models) >= self.max_models:
-                # Remove first item (least recently used)
-                removed_lang, _ = self.loaded_models.popitem(last=False)
-                print(f"Cache full. Unloaded model: {removed_lang}")
-            
-            # 3. Add to cache
-            self.loaded_models[lang_code] = (model, tokenizer)
-            print(f"Successfully loaded {model_id}. Cached models: {list(self.loaded_models.keys())}")
-            
-        except Exception as e:
-            print(f"Error loading model {model_id}: {e}")
-            raise
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(model_id)
+                model = VitsModel.from_pretrained(model_id)
+                model.to(self.device)
+                
+                # 2. Check if cache is full
+                if len(self.loaded_models) >= self.max_models:
+                    # Remove first item (least recently used)
+                    removed_lang, _ = self.loaded_models.popitem(last=False)
+                    print(f"Cache full. Unloaded model: {removed_lang}")
+                
+                # 3. Add to cache
+                self.loaded_models[lang_code] = (model, tokenizer)
+                print(f"Successfully loaded {model_id}. Cached models: {list(self.loaded_models.keys())}")
+                
+            except Exception as e:
+                print(f"Error loading model {model_id}: {e}")
+                raise
 
     @property
     def model(self):
@@ -132,8 +135,6 @@ class MMSEngine:
             output = self.model(
                 input_ids=inputs.input_ids, 
                 attention_mask=inputs.attention_mask,
-                noise_scale=0.667, 
-                length_scale=speed
             ).waveform
         
         # Convert to numpy

@@ -48,6 +48,6 @@ ENV/
 *.pt
 model_checkpoints/
 data/temp/
-
+output/
 
 *.md

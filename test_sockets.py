@@ -150,7 +150,7 @@ def main():
     if not multi_lang: multi_lang = "english"
 
     try:
-        url = 'http://localhost:8000'
+        url = 'wss://ttsfast.dextora.org'
         print(f"\nConnecting to {url}...")
         # Connect to both namespaces
         sio.connect(url, namespaces=['/sentiment', '/multilingual'])
